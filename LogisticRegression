@@ -1,0 +1,68 @@
+import numpy as np
+import pandas as pd
+from sklearn import metrics
+from sklearn import linear_model
+from sklearn.model_selection import train_test_split
+import matplotlib as mpl   
+import matplotlib.pyplot as plt 
+from mpl_toolkits.mplot3d import Axes3D
+import seaborn as sns
+
+#读入数据
+file1 = 'C:/Users/Administrator/Desktop/数据-逻辑回归-患病.xls'    #数据路径
+data1 = pd.read_excel(file1)                                       #读入excel文件
+print(data1.head(4)) 
+print('--------------------------------------------------------------------------------')
+#数据拆分
+x=data1.loc[:,('血液中细胞数','淋巴结浸润等级','出院后有无巩固治疗')]
+y=data1.loc[:,'生存时间一年以上']
+x_train,x_test, y_train, y_test = train_test_split(x,y,test_size = 0.2,random_state=100)
+# 建立逻辑回归模型
+log_model = linear_model.LogisticRegression()
+log_model.fit(x_train, y_train) 
+y_pred = log_model.predict(x_test) 
+print(y_pred)
+print('--------------------------------------------------------------------------------')
+# 查看测试结果
+print(metrics.confusion_matrix(y_test, y_pred))  #混淆矩阵
+print('--------------------------------------------------------------------------------')
+print(metrics.classification_report(y_test, y_pred))
+#TP(True Positive): 真实为0，预测也为0
+#FN(False Negative): 真实为0，预测为1
+#FP(False Positive): 真实为1，预测为0
+#TN(True Negative): 真实为0，预测也为0
+#precision(查准率)=TP/(TP+FP)；recall(查全率)=TP/(TP+FN)
+#F1 = 2 * (precision * recall) / (precision + recall)；F1值是精确度和召回率的调和平均值
+print('--------------------------------------------------------------------------------')
+print("回归斜率",log_model.coef_)          # 直线的斜率
+print("回归截距",log_model.intercept_)     # 直线的截距
+print('--------------------------------------------------------------------------------')
+#做ROC曲线
+plt.figure()
+plt.plot(range(len(y_pred)),y_pred,'b',label="predict")
+plt.plot(range(len(y_pred)),y_test,'r',label="test")
+plt.legend(loc="upper right")       #显示图中的标签
+plt.xlabel("the number of sales")
+plt.ylabel('value of sales')
+plt.show()
+
+#使用statsmodels包
+import pandas as pd
+import numpy as np
+from statsmodels.api import Logit    #逻辑回归
+
+#读入数据
+file1 = 'C:/Users/Administrator/Desktop/数据-逻辑回归-患病.xls'   #数据路径
+data1 = pd.read_excel(file1)                                      #读入excel文件
+#数据拆分
+x=data1.loc[:,('血液中细胞数','淋巴结浸润等级','出院后有无巩固治疗')]
+y=data1.loc[:,'生存时间一年以上']
+x_train,x_test, y_train, y_test = train_test_split(x,y,test_size = 0.2,random_state=100)
+# 建立逻辑回归模型
+logit1 = Logit(y_train, x_train)
+result1 = logit1.fit()
+print(result1.predict(x_test))
+print('--------------------------------------------------------------------------------')
+print("参数",result1.params)
+print('--------------------------------------------------------------------------------')
+print(result1.summary2())
