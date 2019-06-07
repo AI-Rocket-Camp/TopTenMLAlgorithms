@@ -1,0 +1,87 @@
+python实现决策树-sklearn-iris.data
+http://scikit-learn.org/stable/modules/generated/sklearn.tree.DecisionTreeClassifier.html
+http://scikit-learn.org/stable/modules/generated/sklearn.tree.DecisionTreeRegressor.html#sklearn.tree.DecisionTreeRegressor
+
+#读入数据
+%matplotlib inline
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sn
+#此数据文件无列名，因此需要设置header=None，names=['name1','name2','name3','name4']
+iris_data = pd.read_csv('iris.data',header=None,names=['sepal_length_cm','sepal_width_cm','petal_length_cm','petal_width_cm','class'])  #这个数据文件人为加了特征名字
+iris_data.head()
+
+#按类别画出各属性之间的关系图；及按类别每个属性的概率分布图。
+#主要目的可以看一看能不能根据这些特征图来划分类别。
+#数据各列的统计特征表
+print(iris_data.describe())
+print('--------------------------------------------------------------------------------')
+#2.画出未分类各数据列之间散点图以及各数据列的概率密度图（各列数据不分类显示）
+#聚类中需要这样的图
+pd.plotting.scatter_matrix(iris_data, diagonal='kde', alpha=0.3)
+plt.show()
+print('--------------------------------------------------------------------------------')
+#3.画出按类各数据列之间散点图以及各数据列的频率直方图（各列数据分类显示）
+sn.pairplot(iris_data.dropna(), hue='class')    #对DataFrame结构数据画图
+plt.show()
+
+from sklearn.model_selection import train_test_split
+
+data_value=iris_data.drop('class',axis=1)
+target_value=iris_data['class']
+X_train,X_test,y_train,y_test=train_test_split(data_value,target_value,test_size=0.2,random_state=1)
+
+
+from sklearn.tree import DecisionTreeClassifier   #导入决策树分类器
+
+#生成实体分类器，分类器也可以对DataFrame进行分类，且类别标签值可以不转化为数字型变量
+decision_tree_classifier = DecisionTreeClassifier()
+
+#获取最佳分类器(利用参数遍历方法和交叉验证手段)
+#注1：参数遍历是为了获得最佳分类器
+#注2：交叉验证是为了更科学的评价一个分类器的性能(取平均分评价某一分类器的性能)(此时模型参数固定)
+#-----------------以下是通过交叉验证的方式获取分类器中的最佳参数-------------------
+#对参数网格中的每一种组合都要进行交叉验证，获得一个平均得分
+from sklearn.model_selection import GridSearchCV  ##遍历验证函数
+from sklearn.model_selection import ShuffleSplit  #生成交叉验证集的函数调入
+
+par_grid = {'max_depth': [1, 2, 3, 4, 5],'max_features': [1, 2, 3, 4]}  #遍历参数网格
+cv = ShuffleSplit(n_splits=10, test_size=0.3)   
+#n_splits将训练数据分成train/test对的组数；test_size表示测试集占总样本的比例
+#以下是对模型遍历交叉验证生成器，这里边有遍历过程，也就是执行循环遍历
+grid_search = GridSearchCV(decision_tree_classifier,param_grid=par_grid,cv=cv) 
+grid_search.fit(X_train, y_train)
+#print(grid_search.grid_scores_)   #各种组合参数对应的交叉验证平均得分数
+print('Best score:',grid_search.best_score_)
+print('Best parameters:',grid_search.best_params_)
+
+#生成最佳分类器
+decision_tree_classifier = grid_search.best_estimator_ #生成最佳分类器
+#也可以用下边三行内容代替，功能一样
+#
+#depth=grid_search.best_params_['max_depth']  #取出决策树的最佳深度
+#features=grid_search.best_params_['max_features']  #取出决策树的最佳特征数
+#decision_tree_classifier=DecisionTreeClassifier(max_depth=depth,max_features=features)
+
+#利用最佳分类器对测试集预测，并评估分类模型效果
+from sklearn import metrics
+
+y_predict=decision_tree_classifier.predict(X_test)              #预测新的数据分类,返回类别一维数组
+model_accuracy=decision_tree_classifier.score(X_test, y_test)   #测试集的准确率
+print('Accuracy of model:',model_accuracy)   #测试集的准确率
+print(metrics.confusion_matrix(y_test,y_predict))
+print(metrics.classification_report(y_test,y_predict))
+print('--------------------------------------------------------------------------------')
+#新数据预测（数据可以是array也可以是同结构的DataFrame）
+data1=np.array([7.9,3.8,6.4,2.0])
+temp1=decision_tree_classifier.predict(data1.reshape((1,-1)))  #若是一行数据，必须转换成二维数组
+print(data1)
+print(temp1)
+data2=np.array([[7.9,3.8,6.4,2.0],[5.1,2.5,3.0,1.1]])
+temp2=decision_tree_classifier.predict(data2) 
+temp3=decision_tree_classifier.predict_proba(data2) 
+print(data2)
+print(temp2)
+print(temp3)
+
